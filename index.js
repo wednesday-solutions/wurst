@@ -160,5 +160,6 @@ function registerRoutes(relPath) {
 
 module.exports = {
   register: init,
-  pkg
+  pkg,
+  internals
 };
