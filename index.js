@@ -47,6 +47,7 @@ async function init(server, options) {
   if (internals.options.log) {
     logRouteList();
   }
+  return internals.routeList;
 }
 
 /**
