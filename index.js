@@ -1,7 +1,7 @@
-const path = require('path')
-const glob = require('glob-promise')
-const joi = require('joi')
-const pkg = require('./package.json')
+const path = require("path");
+const glob = require("glob-promise");
+const joi = require("joi");
+const pkg = require("./package.json");
 
 /**
  * @type {Object}
@@ -11,7 +11,7 @@ const pkg = require('./package.json')
  */
 const internals = {
   routeList: []
-}
+};
 
 /**
  * @type {Object}
@@ -21,15 +21,13 @@ const internals = {
  */
 const schemata = {
   options: joi.object({
-    routes: joi.string().default('**/*.js'),
-    ignore: [
-      joi.string(),
-      joi.array().items(joi.string())
-    ],
+    routes: joi.string().default("**/*.js"),
+    ignore: [joi.string(), joi.array().items(joi.string())],
     cwd: joi.string().default(process.cwd()),
-    log: joi.boolean().default(false)
+    log: joi.boolean().default(false),
+    dontRoute: joi.boolean().default(false)
   })
-}
+};
 
 /**
  * @function
@@ -38,16 +36,16 @@ const schemata = {
  * @description
  * Initialize auto-loading and prefixing of routes
  */
-async function init (server, options) {
-  internals.server = server
-  internals.options = joi.attempt(options, schemata.options, 'Invalid options')
+async function init(server, options) {
+  internals.server = server;
+  internals.options = joi.attempt(options, schemata.options, "Invalid options");
 
-  const filePaths = await getFilePaths()
+  const filePaths = await getFilePaths();
 
-  filePaths.forEach(registerRoutes)
+  filePaths.forEach(registerRoutes);
 
   if (internals.options.log) {
-    logRouteList()
+    logRouteList();
   }
 }
 
@@ -61,8 +59,8 @@ async function init (server, options) {
  * @param {string} path The modified route path
  * @param {string} method The concerning HTTP method
  */
-function extendRouteList ({ path, method }) {
-  internals.routeList.push({ path, method })
+function extendRouteList({ path, method }) {
+  internals.routeList.push({ path, method });
 }
 
 /**
@@ -72,12 +70,12 @@ function extendRouteList ({ path, method }) {
  * @description
  * Log the built list of prefixed routes into console
  */
-function logRouteList () {
-  console.info(`\n${pkg.name} prefixed the following routes`)
+function logRouteList() {
+  console.info(`\n${pkg.name} prefixed the following routes`);
 
-  internals.routeList.forEach((route) => {
-    console.info('  ', `[${route.method}]`.padEnd(8), route.path)
-  })
+  internals.routeList.forEach(route => {
+    console.info("  ", `[${route.method}]`.padEnd(8), route.path);
+  });
 }
 
 /**
@@ -89,12 +87,12 @@ function logRouteList () {
  *
  * @returns {Array.<?string>} List of file paths
  */
-function getFilePaths () {
+function getFilePaths() {
   return glob(internals.options.routes, {
     nodir: true,
     cwd: internals.options.cwd,
     ignore: internals.options.ignore
-  })
+  });
 }
 
 /**
@@ -106,15 +104,15 @@ function getFilePaths () {
  *
  * @param {string} absPath The absolute file path to be loaded and registered
  */
-function loadRoutesOnce (absPath) {
-  let routes = require(absPath)
+function loadRoutesOnce(absPath) {
+  let routes = require(absPath);
 
   if (!Array.isArray(routes)) {
-    routes = Array.of(routes)
+    routes = Array.of(routes);
   }
 
-  delete require.cache[absPath]
-  return routes
+  delete require.cache[absPath];
+  return routes;
 }
 
 /**
@@ -128,18 +126,18 @@ function loadRoutesOnce (absPath) {
  * @param {string} relPath The releative file path to be loaded and registered
  * @returns {Array.<?Object>} The list of routes with prefixed paths
  */
-function prefixRoutes (absPath, relPath) {
-  const routes = loadRoutesOnce(absPath)
-  const pathTree = relPath.split('/').slice(0, -1)
+function prefixRoutes(absPath, relPath) {
+  const routes = loadRoutesOnce(absPath);
+  const pathTree = relPath.split("/").slice(0, -1);
 
   if (pathTree.length !== 0) {
-    routes.forEach((route) => {
-      route.path = `/${pathTree.join('/')}${route.path}`.replace(/\/$/, '')
-      extendRouteList(route)
-    })
+    routes.forEach(route => {
+      route.path = `/${pathTree.join("/")}${route.path}`.replace(/\/$/, "");
+      extendRouteList(route);
+    });
   }
 
-  return routes
+  return routes;
 }
 
 /**
@@ -151,14 +149,16 @@ function prefixRoutes (absPath, relPath) {
  *
  * @param {string} relPath The releative file path to be loaded and registered
  */
-function registerRoutes (relPath) {
-  const absPath = path.join(internals.options.cwd, relPath)
-  const prefixedRoutes = prefixRoutes(absPath, relPath)
+function registerRoutes(relPath) {
+  const absPath = path.join(internals.options.cwd, relPath);
+  const prefixedRoutes = prefixRoutes(absPath, relPath);
 
-  internals.server.route(prefixedRoutes)
+  if (!internals.options.dontRoute) {
+    internals.server.route(prefixedRoutes);
+  }
 }
 
 module.exports = {
   register: init,
   pkg
-}
+};
